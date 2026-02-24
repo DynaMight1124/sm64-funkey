@@ -1,3 +1,16 @@
+# Small change for 320x240 Funkey displays
+
+Go to the same [link](https://tinyurl.com/sm64-DrUm78)
+
+Follow the step 1 as normal, however when you get to step 2, theres one small change to clone from this fork.
+
+Locate the below before clicking on the 'Play' button and over type it so it looks like this:
+
+<img width="536" height="50" alt="image" src="https://github.com/user-attachments/assets/3cadeeb9-80a3-4463-8533-873fadc81670" />
+
+It will then grab it from this fork and compile for 320x240.
+
+
 # Super Mario 64 DOS Port
 
 This is a novelty port of the sm64-port to DOS. Do not expect it to be playable.
