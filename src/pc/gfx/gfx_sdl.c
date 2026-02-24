@@ -31,8 +31,6 @@
 #include "gfx_sdl_menu.h"
 #include "../savestate.h"
 
-#define RES_HW_SCREEN_HORIZONTAL 320
-
 //#define DEBUG_ADAPTATIVE_RES
 #ifdef DEBUG_ADAPTATIVE_RES
 #define DEBUG_ADAPTATIVE_RES_PRINTF(...)   printf(__VA_ARGS__);
@@ -346,7 +344,7 @@ static void gfx_sdl_init(const char *game_name, bool start_in_fullscreen) {
     #ifdef DIRECT_SDL
     	sdl_screen = SDL_SetVideoMode(window_width, window_height, 32, SDL_HWSURFACE | SDL_TRIPLEBUF);
     #else
-    	texture = SDL_SetVideoMode(240, 240, 32, SDL_HWSURFACE | SDL_TRIPLEBUF);
+    	texture = SDL_SetVideoMode(window_width, window_height, 32, SDL_HWSURFACE | SDL_TRIPLEBUF);
 
 
       int dividend = (1 << (SUB_RES_DIVIDER-1)); 
@@ -741,7 +739,7 @@ void flip_Upscaling_Bilinear(SDL_Surface *src_surface, SDL_Rect *src_rect, SDL_S
 }
 
 
-void upscale_160x120_to_240x240_bilinearish(SDL_Surface *src_surface, SDL_Surface *dst_surface)
+void upscale_160x120_to_320x240_bilinearish(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
   if (src_surface->w != 160)
   {
@@ -758,24 +756,24 @@ void upscale_160x120_to_240x240_bilinearish(SDL_Surface *src_surface, SDL_Surfac
   uint32_t *Dst32 = (uint32_t *) dst_surface->pixels;
 
   // There are 80 blocks of 2 pixels horizontally, and 48 of 3 horizontally.
-  // Horizontally: 240=80*3 160=80*2
+  // Horizontally: 320=80*4 160=80*2
   // Vertically: 240=60*4 120=60*2
-  // Each block of 2*2 becomes 3x4.
+  // Each block of 2*2 becomes 4x4.
   uint32_t BlockX, BlockY;
   uint32_t *BlockSrc;
   uint32_t *BlockDst;
-  uint32_t _a, _b, _ab, _c, _d, _cd;
+  uint32_t _a, _b, _aaab, _abbb, _c, _d, _cccd, _cddd;
   for (BlockY = 0; BlockY < 60; BlockY++)
   {
     BlockSrc = Src32 + BlockY * 160 * 2;
-    BlockDst = Dst32 + BlockY * 240 * 4;
+    BlockDst = Dst32 + BlockY * RES_HW_SCREEN_HORIZONTAL * 4;
     for (BlockX = 0; BlockX < 80; BlockX++)
     {
       /* Horizontaly:
        * Before(2):
        * (a)(b)
-       * After(3):
-       * (a)(ab)(b)
+       * After(4):
+       * (a)(aaab)(abbb)(b)
        */
 
       /* Verticaly:
@@ -788,31 +786,37 @@ void upscale_160x120_to_240x240_bilinearish(SDL_Surface *src_surface, SDL_Surfac
       // -- Line 1 --
       _a = *(BlockSrc                          );
       _b = *(BlockSrc                       + 1);
-      _ab = Weight1_1( _a,  _b);
+      _aaab = Weight3_1( _a,  _b);
+      _abbb = Weight1_3( _a,  _b);
       *(BlockDst                               ) = _a;
-      *(BlockDst                            + 1) = _ab;
-      *(BlockDst                            + 2) = _b;
+      *(BlockDst                            + 1) = _aaab;
+      *(BlockDst                            + 2) = _abbb;
+      *(BlockDst                            + 3) = _b;
 
       // -- Line 2 --
       _c = *(BlockSrc             + 160 * 1    );
       _d = *(BlockSrc             + 160 * 1 + 1);
-      _cd = Weight1_1( _c,  _d);
-      *(BlockDst                  + 240 * 1    ) = Weight3_1(_a, _c);
-      *(BlockDst                  + 240 * 1 + 1) = Weight3_1(_ab, _cd);
-      *(BlockDst                  + 240 * 1 + 2) = Weight3_1(_b, _d);
+      _cccd = Weight3_1( _c,  _d);
+      _cddd = Weight1_3( _c,  _d);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 1    ) = Weight3_1(_a, _c);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 1 + 1) = Weight3_1(_aaab, _cccd);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 1 + 2) = Weight3_1(_abbb, _cddd);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 1 + 3) = Weight3_1(_b, _d);
 
       // -- Line 3 --
-      *(BlockDst                  + 240 * 2    ) = Weight1_3(_a, _c);
-      *(BlockDst                  + 240 * 2 + 1) = Weight1_3(_ab, _cd);
-      *(BlockDst                  + 240 * 2 + 2) = Weight1_3(_b, _d);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 2    ) = Weight1_3(_a, _c);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 2 + 1) = Weight1_3(_aaab, _cccd);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 2 + 2) = Weight1_3(_abbb, _cddd);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 2 + 3) = Weight1_3(_b, _d);
 
       // -- Line 4 --
-      *(BlockDst                  + 240 * 3    ) = _c;
-      *(BlockDst                  + 240 * 3 + 1) = _cd;
-      *(BlockDst                  + 240 * 3 + 2) = _d;
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 3    ) = _c;
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 3 + 1) = _cccd;
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 3 + 2) = _cddd;
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 3 + 3) = _d;
 
       BlockSrc += 2;
-      BlockDst += 3;
+      BlockDst += 4;
     }
   }
 }
@@ -903,7 +907,7 @@ void upscale_160x120_to_240x240_bilinearish(SDL_Surface *src_surface, SDL_Surfac
 
 
 /// Interpolation with left, right pixels, pseudo gaussian weighting for downscaling - operations on 32bits
-void downscale_320x240_to_240x240_bilinearish(SDL_Surface *src_surface, SDL_Surface *dst_surface){
+void downscale_320x240_to_320x240_bilinearish(SDL_Surface *src_surface, SDL_Surface *dst_surface){
   int w1=src_surface->w;
   int h1=src_surface->h;
   int w2=dst_surface->w;
@@ -934,31 +938,15 @@ void downscale_320x240_to_240x240_bilinearish(SDL_Surface *src_surface, SDL_Surf
     y1 = ((i*y_ratio)>>16);
     uint32_t* p = (uint32_t*)(src_screen + (y1*w1) );
 
-    for (int j=0;j<80;j++)
+    for (int j=0;j<w2;j++)
     {
-      /* Horizontaly:
-       * Before(4):
-       * (a)(b)(c)(d)
-       * After(3):
-       * (aaab)(bc)(cddd)
-       */
-      uint32_t _a = *(p    );
-      uint32_t _b = *(p + 1);
-      uint32_t _c = *(p + 2);
-      uint32_t _d = *(p + 3);
-      *(t    ) = Weight3_1( _a, _b );
-      *(t + 1) = Weight1_1( _b, _c );
-      *(t + 2) = Weight1_3( _c, _d );
-
-      // ------ next dst pixel ------
-      t+=3;
-      p+=4;
+      *t++ = *p++;
     }
   }
 }
 
 
-void downscale_320x240_to_240x180_bilinearish(SDL_Surface *src_surface, SDL_Surface *dst_surface)
+void downscale_320x240_to_320x180_bilinearish(SDL_Surface *src_surface, SDL_Surface *dst_surface)
 {
   if (src_surface->w != 320)
   {
@@ -977,33 +965,19 @@ void downscale_320x240_to_240x180_bilinearish(SDL_Surface *src_surface, SDL_Surf
   uint32_t *Src32 = (uint32_t *) src_surface->pixels;
   uint32_t *Dst32 = (uint32_t *) dst_surface->pixels + y_padding*RES_HW_SCREEN_HORIZONTAL;
 
-  // There are 80 blocks of 2 pixels horizontally, and 48 of 3 horizontally.
-  // Horizontally: 320=80*4 240=80*3
+  // There are 80 blocks of 4 pixels horizontally, and 80 of 4 horizontally.
+  // Horizontally: 320=80*4 320=80*4
   // Vertically: 240=60*4 180=60*3
-  // Each block of 4*4 becomes 3*3
+  // Each block of 4*4 becomes 4*3
   uint32_t BlockX, BlockY;
   uint32_t *BlockSrc;
   uint32_t *BlockDst;
   for (BlockY = 0; BlockY < 60; BlockY++)
   {
     BlockSrc = Src32 + BlockY * 320 * 4;
-    BlockDst = Dst32 + BlockY * 240 * 3;
+    BlockDst = Dst32 + BlockY * RES_HW_SCREEN_HORIZONTAL * 3;
     for (BlockX = 0; BlockX < 80; BlockX++)
     {
-      /* Horizontaly:
-       * Before(4):
-       * (a)(b)(c)(d)
-       * After(3):
-       * (aaab)(bc)(cddd)
-       */
-
-      /* Verticaly:
-       * Before(2):
-       * (1)(2)(3)(4)
-       * After(4):
-       * (1112)(23)(3444)
-       */
-
       // -- Data --
       uint32_t _a1 = *(BlockSrc                          );
       uint32_t _b1 = *(BlockSrc                       + 1);
@@ -1022,30 +996,26 @@ void downscale_320x240_to_240x180_bilinearish(SDL_Surface *src_surface, SDL_Surf
       uint32_t _c4 = *(BlockSrc             + 320 * 3 + 2);
       uint32_t _d4 = *(BlockSrc             + 320 * 3 + 3);
 
-      uint32_t _a2a2a2b2  = Weight3_1( _a2, _b2);
-      uint32_t _a3a3a3b3  = Weight3_1( _a3, _b3);
-      uint32_t _b2c2      = Weight1_1( _b2, _c2);
-      uint32_t _b3c3      = Weight1_1( _b3, _c3);
-      uint32_t _c2d2d2d2  = Weight1_3( _c2, _d2);
-      uint32_t _c3d3d3d3  = Weight1_3( _c3, _d3);
-
       // -- Line 1 --
-      *(BlockDst                               ) = Weight3_1( Weight3_1( _a1, _b1), _a2a2a2b2             );
-      *(BlockDst                            + 1) = Weight3_1( Weight1_1( _b1, _c1), _b2c2                 );
-      *(BlockDst                            + 2) = Weight3_1( Weight1_3( _c1, _d1), _c2d2d2d2             );
+      *(BlockDst                               ) = Weight3_1(_a1, _a2);
+      *(BlockDst                            + 1) = Weight3_1(_b1, _b2);
+      *(BlockDst                            + 2) = Weight3_1(_c1, _c2);
+      *(BlockDst                            + 3) = Weight3_1(_d1, _d2);
 
       // -- Line 2 --
-      *(BlockDst                  + 240 * 1    ) = Weight1_1( _a2a2a2b2           , _a3a3a3b3             );
-      *(BlockDst                  + 240 * 1 + 1) = Weight1_1( _b2c2               , _b3c3                 );
-      *(BlockDst                  + 240 * 1 + 2) = Weight1_1( _c2d2d2d2           , _c3d3d3d3             );
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 1    ) = Weight1_1(_a2, _a3);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 1 + 1) = Weight1_1(_b2, _b3);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 1 + 2) = Weight1_1(_c2, _c3);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 1 + 3) = Weight1_1(_d2, _d3);
 
       // -- Line 3 --
-      *(BlockDst                  + 240 * 2    ) = Weight1_3( _a3a3a3b3           , Weight3_1( _a4, _b4)  );
-      *(BlockDst                  + 240 * 2 + 1) = Weight1_3( _b3c3               , Weight1_1( _b4, _c4)  );
-      *(BlockDst                  + 240 * 2 + 2) = Weight1_3( _c3d3d3d3           , Weight1_3( _c4, _d4)  );
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 2    ) = Weight1_3(_a3, _a4);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 2 + 1) = Weight1_3(_b3, _b4);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 2 + 2) = Weight1_3(_c3, _c4);
+      *(BlockDst                  + RES_HW_SCREEN_HORIZONTAL * 2 + 3) = Weight1_3(_d3, _d4);
 
       BlockSrc += 4;
-      BlockDst += 3;
+      BlockDst += 4;
     }
   }
 }
@@ -1114,7 +1084,7 @@ void downscale_320x240_to_240x180_bilinearish(SDL_Surface *src_surface, SDL_Surf
 // }
 
 
-static SDL_Rect middle_rect = {40,0,240,240};
+static SDL_Rect middle_rect = {0,0,320,240};
 
 void gfx_sdl_upscale_to_fullscreen(void) {
   if (current_res_idx==0) {

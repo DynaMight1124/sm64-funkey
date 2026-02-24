@@ -2511,7 +2511,7 @@ void print_hud_pause_colorful_str(void) {
 #elif VERSION_JP
     print_hud_lut_string(HUD_LUT_GLOBAL, 126, 81, textPause);
 #else
-    print_hud_lut_string(HUD_LUT_GLOBAL, 130, 81, textPause);
+    print_hud_lut_string(HUD_LUT_GLOBAL, 123, 81, textPause);
 #endif
 
     gSPDisplayList(gDisplayListHead++, dl_rgba16_text_end);
@@ -2714,8 +2714,8 @@ s16 render_pause_courses_and_castle(void) {
         case DIALOG_STATE_HORIZONTAL:
             shade_screen();
             print_hud_pause_colorful_str();
-            render_pause_castle_menu_box(161, 143);
-            render_pause_castle_main_strings(105, 60);
+            render_pause_castle_menu_box(160, 143);
+            render_pause_castle_main_strings(104, 60);
 
 #ifdef VERSION_EU
             if (gPlayer3Controller->buttonPressed & (A_BUTTON | Z_TRIG | START_BUTTON))
