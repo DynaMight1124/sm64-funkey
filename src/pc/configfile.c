@@ -275,6 +275,11 @@ void configfile_load(const char *filename) {
     }
 
     fclose(file);
+
+#if defined(FUNKEY)
+    configScreenWidth = 320;
+    configScreenHeight = 240;
+#endif
 }
 
 // Writes the config file to 'filename'
